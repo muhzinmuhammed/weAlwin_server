@@ -142,4 +142,74 @@ const userLogin = async (req, res) => {
     }
 };
 
-export { userRegister, userLogin };
+//all users data
+const allUsers=async(req,res)=>{
+    try {
+        const userData = await userModel.aggregate([
+            {
+              $match: {
+                isActive: true
+              }
+            },
+            {
+              $project: {
+                name: 1,
+                userEmail: 1
+              }
+            }
+          ]);
+        if (userData) {
+            return res.status(200).json({
+                data:userData
+            })
+        }else{
+            return res.status(400).json({message:'No Data'})
+        }
+    } catch (error) {
+        console.log(error);
+        return res.status(500).json({message:'Internal server Error'})
+        
+        
+    }
+}
+
+
+// dashboard viewoardView
+
+const dashBoard = async (req, res) => {
+    try {
+        const { page = 1, limit = 10, search = "" } = req.query;
+
+        // Create a search filter (case-insensitive) for the user name
+        const searchQuery = search
+            ? { name: { $regex: search, $options: "i" } }
+            : {};
+
+        // Get total count of users for pagination
+        const totalUsers = await userModel.countDocuments(searchQuery);
+
+        // Fetch users based on pagination and search filters
+        const usersData = await userModel
+            .find(searchQuery)
+            .skip((page - 1) * limit)
+            .limit(Number(limit))
+            .exec();
+
+        if (usersData) {
+            return res.status(200).json({
+                data: usersData,
+                currentPage: Number(page),
+                totalPages: Math.ceil(totalUsers / limit),
+                totalUsers: totalUsers
+            });
+        } else {
+            return res.status(400).json({ message: "No Data" });
+        }
+    } catch (error) {
+        console.log(error);
+        return res.status(500).json({ message: "Internal server Error" });
+    }
+};
+
+
+export { userRegister, userLogin,allUsers,dashBoard };
